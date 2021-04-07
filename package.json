@@ -1,0 +1,19 @@
+{
+  "name": "snoke",
+  "version": "0.0.1",
+  "description": "Symbolically link node packages en masse for local development",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ben Cheshire",
+  "bin": {
+    "snoke": "bin/run.js"
+  },
+  "engines": {
+    "node": ">=10.12.0",
+    "npm": ">=6.0.0"
+  },
+  "preferGlobal": true,
+  "license": "MIT"
+}
