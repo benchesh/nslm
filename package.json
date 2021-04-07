@@ -15,5 +15,8 @@
     "npm": ">=6.0.0"
   },
   "preferGlobal": true,
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "yargs": "^16.2.0"
+  }
 }
