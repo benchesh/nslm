@@ -12,7 +12,20 @@ const moduleExists = (path) => {
 }
 
 if (!args[0].includes('..') && moduleExists(cmd)) {//if the cmd exists, run it!
-    require(cmd).run(args.splice(1));
+    const yargs = require('yargs/yargs');
+    require(cmd).run(
+        yargs(args.splice(1))
+            .array(['modules', 'pathscontainingevery', 'pathscontainingsome'])
+            .boolean(['all', 'allowmissing'])
+            .alias('pathcontainingsome', 'pathscontainingsome')
+            .alias('pathcontainingany', 'pathscontainingsome')
+            .alias('pathcontaining', 'pathscontainingsome')
+            .alias('pathscontaining', 'pathscontainingsome')
+            .alias('pathcontainingevery', 'pathscontainingevery')
+            .alias('pathcontainingall', 'pathscontainingevery')
+            .alias('pathscontainingall', 'pathscontainingevery')
+            .argv
+    );
     return;
 }
 
