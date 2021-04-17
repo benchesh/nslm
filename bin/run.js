@@ -24,6 +24,8 @@ if (!args[0].includes('..') && moduleExists(cmd)) {//if the cmd exists, run it!
             .alias('pathcontainingevery', 'pathscontainingevery')
             .alias('pathcontainingall', 'pathscontainingevery')
             .alias('pathscontainingall', 'pathscontainingevery')
+            .alias('module', 'modules')
+            .alias('a', 'all')
             .argv
     );
     return;
