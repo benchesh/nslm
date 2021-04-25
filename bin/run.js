@@ -19,7 +19,7 @@ if (!args[0].includes('..') && moduleExists(cmd)) {//if the cmd exists, run it!
 
     global.argv = yargs(args.splice(1))
         .array(['modules', 'pathscontainingevery', 'pathscontainingsome'])
-        .boolean(['all', 'allowmissing', 'simulate'])
+        .boolean(['all', 'allowmissing', 'fix'])
         .alias('pathcontainingsome', 'pathscontainingsome')
         .alias('pathcontainingany', 'pathscontainingsome')
         .alias('pathcontaining', 'pathscontainingsome')
