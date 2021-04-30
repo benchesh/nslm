@@ -19,7 +19,7 @@ if (!args[0].includes('..') && moduleExists(cmd)) {//if the cmd exists, run it!
 
     global.argv = yargs(args.splice(1))
         .array(['modules', 'pathscontainingevery', 'pathscontainingsome'])
-        .boolean(['all', 'allowmissing', 'fix'])
+        .boolean(['all', 'allowmissing', 'fix', 'simulate'])
         .alias('pathcontainingsome', 'pathscontainingsome')
         .alias('pathcontainingany', 'pathscontainingsome')
         .alias('pathcontaining', 'pathscontainingsome')
@@ -29,7 +29,20 @@ if (!args[0].includes('..') && moduleExists(cmd)) {//if the cmd exists, run it!
         .alias('pathscontainingall', 'pathscontainingevery')
         .alias('module', 'modules')
         .alias('a', 'all')
+        .alias('s', 'simulate')
         .argv
+
+    //change cwd to arg
+    {
+        const newPWD = path.resolve(argv._.join(' '));
+        try {
+            process.chdir(newPWD);
+        } catch (err) {
+            error(`Directory "${newPWD}" does not exist!`);
+            return;
+        }
+    }
+    console.log(`PWD: "${process.cwd()}"`);
 
     require(cmd).run();
     return;
