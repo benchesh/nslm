@@ -1,6 +1,6 @@
 {
   "name": "nslm",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Symbolically link node packages en masse for local development",
   "main": "lib/index.js",
   "scripts": {
@@ -18,5 +18,9 @@
   "license": "MIT",
   "dependencies": {
     "yargs": "^16.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/benchesh/nslm"
   }
 }
