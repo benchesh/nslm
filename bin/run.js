@@ -1,6 +1,14 @@
 #!/usr/bin/env node
 
+const { importAll } = require('../lib/importAll.js');
+importAll().from('./common.js');
+
 const args = process.argv.splice(process.execArgv.length + 2);
+args[0] = args[0].replace(/^-*/g, '');
+Object.keys(aliases).forEach((cmd) => {
+    if (aliases[cmd].includes(args[0])) args[0] = cmd;
+});
+
 const cmd = `../lib/cmds/${args[0]}.js`;
 const moduleExists = (path) => {
     try {
@@ -10,9 +18,6 @@ const moduleExists = (path) => {
         return false;
     }
 }
-
-const { importAll } = require('../lib/importAll.js');
-importAll().from('./common.js');
 
 if (!args[0].includes('..') && moduleExists(cmd)) {//if the cmd exists, run it!
     const yargs = require('yargs/yargs');
@@ -42,7 +47,7 @@ if (!args[0].includes('..') && moduleExists(cmd)) {//if the cmd exists, run it!
             return;
         }
     }
-    console.log(`PWD: "${process.cwd()}"`);
+    !['version', 'help'].includes(args[0]) && console.log(`PWD: "${process.cwd()}"`);
 
     require(cmd).run();
     return;
