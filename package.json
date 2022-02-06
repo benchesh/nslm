@@ -1,6 +1,6 @@
 {
   "name": "nslm",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Symbolically link node packages en masse for local development",
   "main": "lib/index.js",
   "scripts": {
