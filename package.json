@@ -11,7 +11,7 @@
     "nslm": "bin/run.js"
   },
   "engines": {
-    "node": ">=12",
+    "node": ">=14",
     "npm": ">=6"
   },
   "preferGlobal": true,

@@ -6,7 +6,7 @@ NOTE: Some features have not been documented yet!
 
 ## Installation
 
-Ensure you have node version 10 or above:
+Ensure you have node version 14 or above:
 
 ```
 node -v

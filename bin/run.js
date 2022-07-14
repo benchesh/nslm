@@ -23,8 +23,9 @@ if (!args[0].includes('..') && moduleExists(cmd)) {//if the cmd exists, run it!
     const yargs = require('yargs/yargs');
 
     global.argv = yargs(args.splice(1))
-        .array(['modules', 'pathscontainingevery', 'pathscontainingsome'])
-        .boolean(['all', 'allowmissing', 'fix', 'simulate'])
+        .array(['modules', 'pathscontainingevery', 'pathscontainingsome', 'subdirs'])
+        .boolean(['all', 'allowmissing', 'fix', 'simulate', 'watch', 'verbose', 'relink'])
+        .choices('linktype', ['symbolic', 'copy'])
         .alias('pathcontainingsome', 'pathscontainingsome')
         .alias('pathcontainingany', 'pathscontainingsome')
         .alias('pathcontaining', 'pathscontainingsome')
@@ -35,6 +36,10 @@ if (!args[0].includes('..') && moduleExists(cmd)) {//if the cmd exists, run it!
         .alias('module', 'modules')
         .alias('a', 'all')
         .alias('s', 'simulate')
+        .alias('subdir', 'subdirs')
+        .alias('subdirectories', 'subdirs')
+        .alias('subdirectory', 'subdirs')
+        .alias('type', 'linktype')
         .argv
 
     //change cwd to arg
