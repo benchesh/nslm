@@ -44,6 +44,8 @@ if (!args[0].includes('..') && moduleExists(cmd)) {//if the cmd exists, run it!
         .alias('a', 'all')
         .alias('w', 'watch')
         .alias('s', 'simulate')
+        .alias('linksubdirs', 'subdirs')
+        .alias('link-subdirs', 'subdirs')
         .alias('subdir', 'subdirs')
         .alias('sub-dir', 'subdirs')
         .alias('linksubdir', 'subdirs')
@@ -60,6 +62,9 @@ if (!args[0].includes('..') && moduleExists(cmd)) {//if the cmd exists, run it!
         .alias('link-subdirectory', 'subdirs')
         .alias('link-sub-directory', 'subdirs')
         .alias('link-type', 'linktype')
+        .alias('linkmode', 'linktype')
+        .alias('link-mode', 'linktype')
+        .alias('mode', 'linktype')
         .alias('type', 'linktype')
         .alias('allow-missing', 'allowmissing')
         .argv
