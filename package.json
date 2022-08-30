@@ -19,7 +19,7 @@
   "dependencies": {
     "chokidar": "^3.5.3",
     "fs-extra": "^10.1.0",
-    "yargs": "^16.2.0"
+    "yargs": "^17.5.1"
   },
   "repository": {
     "type": "git",
