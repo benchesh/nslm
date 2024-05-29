@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`nslm help matches the snapshot 1`] = `
+"Commands:
+  nslm register                                                    Recursively register all node modules for use with nslm
+  nslm deregister / unregister                                     Recursively deregister node modules for use with nslm
+  nslm link                                                        Replace all modules for the current project with their nslm versions
+  nslm delink / unlink                                             Remove all nslm modules from the current project
+  nslm check-links / checklinks / check-link / checklink / check   Replace all modules for the current project with their nslm versions
+  nslm help / h                                                    Show help
+  nslm version / v                                                 Show version number"
+`;
