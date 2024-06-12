@@ -3,6 +3,8 @@
 const { importAll } = require('../lib/importAll.js');
 importAll().from('./common.js');
 
+global.argsJson = JSON.parse(JSON.stringify(process.argv));
+
 const args = process.argv.splice(process.execArgv.length + 2);
 args[0] = args[0].replace(/^-*/g, '');
 Object.keys(aliases).forEach((cmd) => {
