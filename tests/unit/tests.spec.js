@@ -37,6 +37,10 @@ async function runNslmCmd(cmd, module = '') {
 }
 
 describe('nslm', () => {
+  beforeEach(() => {
+    expect(fs.existsSync(registeredPath)).toBe(false);
+  });
+
   afterEach(() => {
     if (fs.existsSync(registeredPath)) fs.rmSync(registeredPath);
   });
@@ -48,10 +52,12 @@ describe('nslm', () => {
 
       const json = JSON.parse(fs.readFileSync(registeredPath));
 
-      expect(Object.values(json)).toHaveLength(2);
+      expect(Object.values(json)).toHaveLength(4);
 
       expect(json.mock_repo1).toBe(path.resolve(mocksDir, 'mock_repo1'));
       expect(json.mock_repo2).toBe(path.resolve(mocksDir, 'mock_repo2'));
+      expect(json.mock_repo_with_child).toBe(path.resolve(mocksDir, 'mock_repo_with_child'));
+      expect(json.mock_repo_in_a_subfolder).toBe(path.resolve(mocksDir, 'subfolder', 'mock_repo_in_a_subfolder'));
     });
 
     it('doesn\'t register the module if it doesn\'t have a name field', async () => {
@@ -79,17 +85,21 @@ describe('nslm', () => {
   });
 
   describe('deregister', () => {
-    it('delete the specified node module indexes', async () => {
+    it('deletes the specified node module indexes', async () => {
       await runNslmCmd('register');
-      const output = await runNslmCmd('deregister --modules mock_repo1');
-      const json = JSON.parse(fs.readFileSync(registeredPath));
+      const json1 = JSON.parse(fs.readFileSync(registeredPath));
 
-      expect(Object.values(json)).toHaveLength(1);
+      expect(Object.values(json1)).toHaveLength(4);
+      expect(json1.mock_repo1).toBe(path.resolve(mocksDir, 'mock_repo1'));
 
-      expect(json.mock_repo2).toBe(path.resolve(mocksDir, 'mock_repo2'));
+      await runNslmCmd('deregister --modules mock_repo1');
+      const json2 = JSON.parse(fs.readFileSync(registeredPath));
+
+      expect(Object.values(json2)).toHaveLength(3);
+      expect(json2.mock_repo1).toBeUndefined();
     });
 
-    it('delete the register file when deregistering all node modules', async () => {
+    it('deletes the register file when deregistering all node modules', async () => {
       await runNslmCmd('register');
       await runNslmCmd('deregister -a');
 
@@ -98,19 +108,10 @@ describe('nslm', () => {
   });
 
   describe('link', () => {
-    it('delete the specified node module indexes', async () => {
+    it('does nothing if nothing has been registered', async () => {
       const output = await runNslmCmd('link');
 
-      expect(Object.values(json)).toHaveLength(1);
-
-      expect(json.mock_repo2).toBe(path.resolve(mocksDir, 'mock_repo2'));
-    });
-
-    it('delete the register file when deregistering all node modules', async () => {
-      await runNslmCmd('register');
-      await runNslmCmd('deregister -a');
-
-      expect(fs.existsSync(registeredPath)).toBe(false);
+      expect(output.includes('You need to register at least one module')).toBe(true)
     });
   });
 
