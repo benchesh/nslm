@@ -162,7 +162,7 @@ describe('nslm', () => {
         expect(output.includes('No modules were linked')).toBe(true);
       });
 
-      it('if no the specified node modules don\'t exist', async () => {
+      it('if the specified node modules don\'t exist', async () => {
         await runNslmCmd('register');
         const output = await runNslmCmd('link --modules does-not-exist');
 
@@ -179,7 +179,7 @@ describe('nslm', () => {
       });
     });
 
-    it('links the specified modules', async () => {
+    it('links the specified modules if they\'re already installed within the recipient module', async () => {
       await runNslmCmd('register');
       fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
 
@@ -195,10 +195,73 @@ describe('nslm', () => {
       expect(fs.realpathSync(mock_repo3)).toBe(path.resolve(mocksDir, 'mock_repo3'));
     });
 
-    it('links the specified missing modules if the --allowmissing flag is given', async () => {
+    it('links the specified modules if the --allowmissing flag is given', async () => {
       await runNslmCmd('register');
 
       const output = await runNslmCmd('link --modules mock_repo2 mock_repo3 --allowmissing', 'mock_repo1');
+      expect(output.includes('--allowmissing flag is active')).toBe(true);
+      expect(output.includes('2 modules were linked successfully')).toBe(true);
+
+      const mock_repo2 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo2');
+      expect(fs.lstatSync(mock_repo2).isSymbolicLink()).toBe(true);
+      expect(fs.realpathSync(mock_repo2)).toBe(path.resolve(mocksDir, 'mock_repo2'));
+
+      const mock_repo3 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo3');
+      expect(fs.lstatSync(mock_repo3).isSymbolicLink()).toBe(true);
+      expect(fs.realpathSync(mock_repo3)).toBe(path.resolve(mocksDir, 'mock_repo3'));
+    });
+  });
+
+  describe('delink', () => {
+    describe('does nothing', () => {
+      it('if nothing\'s been linked', async () => {
+        const output = await runNslmCmd('delink -a', 'mock_repo1');
+
+        expect(output.includes('.nslm directory was not found')).toBe(true);
+      });
+
+      it('if no arguments are provided', async () => {
+        await runNslmCmd('register');
+        fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
+        await runNslmCmd('link --modules mock_repo2 mock_repo3', 'mock_repo1');
+
+        const output = await runNslmCmd('delink', 'mock_repo1');
+        expect(output.includes('No arguments were supplied, so nothing was done')).toBe(true);
+        expect(output.includes('No modules were delinked')).toBe(true);
+      });
+
+      it('if no arguments have been provided', async () => {
+        await runNslmCmd('register');
+        fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
+        await runNslmCmd('link --modules mock_repo2 mock_repo3', 'mock_repo1');
+
+        const output = await runNslmCmd('delink --modules not_a_repo', 'mock_repo1');
+        expect(output.includes('Delinking nslm module with name "not_a_repo"')).toBe(true);
+        expect(output.includes('No modules were delinked')).toBe(true);
+      });
+    });
+
+    it('links the specified modules if they\'re already installed within the recipient module', async () => {
+      await runNslmCmd('register');
+      fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
+
+      const output = await runNslmCmd('link --modules mock_repo2 mock_repo3', 'mock_repo1');
+      expect(output.includes('2 modules were linked successfully')).toBe(true);
+
+      const mock_repo2 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo2');
+      expect(fs.lstatSync(mock_repo2).isSymbolicLink()).toBe(true);
+      expect(fs.realpathSync(mock_repo2)).toBe(path.resolve(mocksDir, 'mock_repo2'));
+
+      const mock_repo3 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo3');
+      expect(fs.lstatSync(mock_repo3).isSymbolicLink()).toBe(true);
+      expect(fs.realpathSync(mock_repo3)).toBe(path.resolve(mocksDir, 'mock_repo3'));
+    });
+
+    it('links the specified modules if the --allowmissing flag is given', async () => {
+      await runNslmCmd('register');
+
+      const output = await runNslmCmd('link --modules mock_repo2 mock_repo3 --allowmissing', 'mock_repo1');
+      expect(output.includes('--allowmissing flag is active')).toBe(true);
       expect(output.includes('2 modules were linked successfully')).toBe(true);
 
       const mock_repo2 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo2');
