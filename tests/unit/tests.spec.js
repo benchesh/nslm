@@ -368,6 +368,52 @@ describe('nslm', () => {
         expect(output.includes('It doesn\'t look like you have linked any nslm modules')).toBe(true)
       });
     });
+    
+    it('verifies working links', async () => {
+      await runNslmCmd('register');
+      fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
+
+      await runNslmCmd('link --modules mock_repo2', 'mock_repo1');
+
+      const output = await runNslmCmd('check', 'mock_repo1');
+      expect(output.includes('"mock_repo1/node_modules/mock_repo2"')).toBe(true);
+      expect(output.includes('is pointing to')).toBe(true);
+      expect(output.includes('The links for all 1 checked modules are OK')).toBe(true);
+    });
+
+    it('verifies broken links', async () => {
+      await runNslmCmd('register');
+      fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
+
+      await runNslmCmd('link --modules mock_repo2', 'mock_repo1');
+
+      // simulate a user deleting the link
+      fs.rmSync(path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo2'), { recursive: true });
+
+      const output = await runNslmCmd('check', 'mock_repo1');
+      expect(output.includes('"mock_repo1/node_modules/mock_repo2"')).toBe(true);
+      expect(output.includes('is NOT pointing to')).toBe(true);
+      expect(output.includes('1 of 1 checked modules need relinking')).toBe(true);
+      expect(output.includes('1 of 1 checked modules need relinking! Fixing...')).toBe(false);
+    });
+
+    it('fixes broken links if the fix argument is given', async () => {
+      await runNslmCmd('register');
+      fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
+
+      await runNslmCmd('link --modules mock_repo2', 'mock_repo1');
+
+      // simulate a user deleting the link
+      fs.rmSync(path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo2'), { recursive: true });
+
+      const output = await runNslmCmd('check --fix', 'mock_repo1');
+      expect(output.includes('1 of 1 checked modules need relinking! Fixing...')).toBe(true);
+      expect(output.includes('1 module was linked successfully')).toBe(true);
+
+      const mock_repo2 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo2');
+      expect(fs.lstatSync(mock_repo2).isSymbolicLink()).toBe(true);
+      expect(fs.realpathSync(mock_repo2)).toBe(path.resolve(mocksDir, 'mock_repo2'));
+    });
   });
 
   describe('help', () => {
