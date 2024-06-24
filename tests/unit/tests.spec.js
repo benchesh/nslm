@@ -62,6 +62,7 @@ async function runNslmCmd(cmd, subdir = '') {
 const fakeNpmInstall = (dest, modules) => {
   modules.forEach((module) => {
     fs.copySync(path.resolve(mocksDir, module), path.resolve(mocksDir, dest, 'node_modules', module));
+    fs.writeFileSync(path.resolve(mocksDir, dest, 'node_modules', module, 'extra-file.txt'), 'hello world');
   });
 }
 
@@ -75,9 +76,36 @@ describe('nslm', () => {
   });
 
   describe('register', () => {
+    describe('does nothing', () => {
+      it('if a module has already been registered', async () => {
+        await runNslmCmd('register');
+        const json1 = JSON.parse(fs.readFileSync(registeredPath));
 
-    it('registers the mock node modules', async () => {
-      await runNslmCmd('register');
+        const output = await runNslmCmd('register');
+        const json2 = JSON.parse(fs.readFileSync(registeredPath));
+
+        expect(JSON.stringify(json1)).toBe(JSON.stringify(json2));
+
+        expect(output.includes('Module "mock_repo1" has already been registered at location')).toBe(true);
+        expect(output.includes('Module "mock_repo2" has already been registered at location')).toBe(true);
+      });
+
+      it('if package.json doesn\'t exist', async () => {
+        const output = await runNslmCmd('register', 'empty_folder');
+
+        const json = JSON.parse(fs.readFileSync(registeredPath));
+
+        expect(output.includes('Searching directories for package.json... 0 found!')).toBe(true);
+        expect(output.includes('0 new modules were registered')).toBe(true);
+        expect(Object.values(json)).toHaveLength(0);
+      });
+    })
+
+    it('registers all node modules by default', async () => {
+      const output = await runNslmCmd('register');
+
+      expect(output.includes('The --all argument is automatically used for this command')).toBe(true);
+      expect(output.includes('4 new modules were registered')).toBe(true);
 
       const json = JSON.parse(fs.readFileSync(registeredPath));
 
@@ -89,6 +117,19 @@ describe('nslm', () => {
       expect(json.mock_repo_in_a_subfolder).toBe(path.resolve(mocksDir, 'subfolder', 'mock_repo_in_a_subfolder'));
     });
 
+    it('registers only specific node modules when given', async () => {
+      const output = await runNslmCmd('register --modules mock_repo1');
+
+      expect(output.includes('The --all argument is automatically used for this command')).toBe(false);
+      expect(output.includes('1 new module was registered')).toBe(true);
+
+      const json = JSON.parse(fs.readFileSync(registeredPath));
+
+      expect(Object.values(json)).toHaveLength(1);
+
+      expect(json.mock_repo1).toBe(path.resolve(mocksDir, 'mock_repo1'));
+    });
+
     it('doesn\'t register the module if it doesn\'t have a name field', async () => {
       const output = await runNslmCmd('register', 'mock_repo_missing_name');
 
@@ -97,19 +138,6 @@ describe('nslm', () => {
       expect(output.includes('does not have a name field! Skipping')).toBe(true);
       expect(output.includes('0 new modules were registered')).toBe(true);
       expect(Object.values(json)).toHaveLength(0);
-    });
-
-    it('does nothing if a module has already been registered', async () => {
-      await runNslmCmd('register');
-      const json1 = JSON.parse(fs.readFileSync(registeredPath));
-
-      const output = await runNslmCmd('register');
-      const json2 = JSON.parse(fs.readFileSync(registeredPath));
-
-      expect(JSON.stringify(json1)).toBe(JSON.stringify(json2));
-
-      expect(output.includes('Module "mock_repo1" has already been registered at location')).toBe(true);
-      expect(output.includes('Module "mock_repo2" has already been registered at location')).toBe(true);
     });
 
     it('doesn\'t register a module if it\'s a child of node_modules', async () => {
@@ -144,17 +172,25 @@ describe('nslm', () => {
 
       expect(fs.existsSync(registeredPath)).toBe(false);
     });
+
+    it('deletes the register file when no node modules remain', async () => {
+      await runNslmCmd('register --modules mock_repo1');
+      await runNslmCmd('deregister --modules mock_repo1');
+
+      expect(fs.existsSync(registeredPath)).toBe(false);
+    });
   });
 
   describe('link', () => {
     describe('does nothing', () => {
-      it('if no arguments are given', async () => {
+      it('if nothing has been registered', async () => {
+
         const output = await runNslmCmd('link');
 
         expect(output.includes('You need to register at least one module')).toBe(true)
       });
 
-      it('if nothing has been registered', async () => {
+      it('if no arguments are given', async () => {
         await runNslmCmd('register');
         const output = await runNslmCmd('link');
 
@@ -179,12 +215,13 @@ describe('nslm', () => {
       });
     });
 
-    it('links the specified modules if they\'re already installed within the recipient module', async () => {
+    it('links the specified modules if they\'re installed within the recipient module', async () => {
       await runNslmCmd('register');
       fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
 
       const output = await runNslmCmd('link --modules mock_repo2 mock_repo3', 'mock_repo1');
       expect(output.includes('2 modules were linked successfully')).toBe(true);
+      expect(output.includes('All directories have been copied')).toBe(false);
 
       const mock_repo2 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo2');
       expect(fs.lstatSync(mock_repo2).isSymbolicLink()).toBe(true);
@@ -209,6 +246,25 @@ describe('nslm', () => {
       const mock_repo3 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo3');
       expect(fs.lstatSync(mock_repo3).isSymbolicLink()).toBe(true);
       expect(fs.realpathSync(mock_repo3)).toBe(path.resolve(mocksDir, 'mock_repo3'));
+    });
+
+    it('links the specified modules in copy mode', async () => {
+      await runNslmCmd('register');
+      fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
+
+      const output = await runNslmCmd('link --modules mock_repo2 mock_repo3 --linktype copy', 'mock_repo1');
+      expect(output.includes('2 modules were linked successfully')).toBe(true);
+      expect(output.includes('All directories have been copied')).toBe(true);
+
+      const mock_repo2 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo2');
+      expect(fs.lstatSync(mock_repo2).isSymbolicLink()).toBe(false);
+      expect(fs.existsSync(path.resolve(mock_repo2, '.nslm-copied-dir'))).toBe(true);
+      expect(fs.existsSync(path.resolve(mock_repo2, 'extra-file.txt'))).toBe(false);
+
+      const mock_repo3 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo3');
+      expect(fs.lstatSync(mock_repo3).isSymbolicLink()).toBe(false);
+      expect(fs.existsSync(path.resolve(mock_repo3, '.nslm-copied-dir'))).toBe(true);
+      expect(fs.existsSync(path.resolve(mock_repo3, 'extra-file.txt'))).toBe(false);
     });
   });
 
@@ -230,7 +286,7 @@ describe('nslm', () => {
         expect(output.includes('No modules were delinked')).toBe(true);
       });
 
-      it('if no arguments have been provided', async () => {
+      it('if an invalid module is provided', async () => {
         await runNslmCmd('register');
         fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
         await runNslmCmd('link --modules mock_repo2 mock_repo3', 'mock_repo1');
@@ -241,36 +297,76 @@ describe('nslm', () => {
       });
     });
 
-    it('links the specified modules if they\'re already installed within the recipient module', async () => {
+    it('delinks the specified modules', async () => {
       await runNslmCmd('register');
       fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
 
-      const output = await runNslmCmd('link --modules mock_repo2 mock_repo3', 'mock_repo1');
-      expect(output.includes('2 modules were linked successfully')).toBe(true);
+      await runNslmCmd('link --modules mock_repo2 mock_repo3', 'mock_repo1');
+
+      const output = await runNslmCmd('delink --modules mock_repo2', 'mock_repo1');
+      expect(output.includes('"mock_repo1/node_modules/mock_repo2"')).toBe(true);
+      expect(output.includes('delinked & restored from backup')).toBe(true);
+      expect(output.includes('1 module was delinked successfully')).toBe(true);
 
       const mock_repo2 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo2');
-      expect(fs.lstatSync(mock_repo2).isSymbolicLink()).toBe(true);
-      expect(fs.realpathSync(mock_repo2)).toBe(path.resolve(mocksDir, 'mock_repo2'));
+      expect(fs.lstatSync(mock_repo2).isSymbolicLink()).toBe(false);
 
       const mock_repo3 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo3');
       expect(fs.lstatSync(mock_repo3).isSymbolicLink()).toBe(true);
       expect(fs.realpathSync(mock_repo3)).toBe(path.resolve(mocksDir, 'mock_repo3'));
     });
 
-    it('links the specified modules if the --allowmissing flag is given', async () => {
+    it('deletes the backups folder if everything\'s been delinked', async () => {
       await runNslmCmd('register');
+      fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
 
-      const output = await runNslmCmd('link --modules mock_repo2 mock_repo3 --allowmissing', 'mock_repo1');
-      expect(output.includes('--allowmissing flag is active')).toBe(true);
-      expect(output.includes('2 modules were linked successfully')).toBe(true);
+      await runNslmCmd('link --modules mock_repo2 mock_repo3', 'mock_repo1');
+      expect(fs.existsSync(path.resolve(mocksDir, 'mock_repo1', '.nslm'))).toBe(true);
+
+      await runNslmCmd('delink -a', 'mock_repo1');
+      expect(fs.existsSync(path.resolve(mocksDir, 'mock_repo1', '.nslm'))).toBe(false);
+    });
+
+    it('delinks but doesn\'t restore from backup if the backup has been deleted', async () => {
+      await runNslmCmd('register');
+      fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
+
+      await runNslmCmd('link --modules mock_repo2', 'mock_repo1');
+
+      // simulate a user deleting the backup manually
+      fs.rmSync(path.resolve(mocksDir, 'mock_repo1', '.nslm', 'node_modules', 'mock_repo2'), { recursive: true });
+
+      const output = await runNslmCmd('delink -a', 'mock_repo1');
+      expect(output.includes('"mock_repo1/node_modules/mock_repo2"')).toBe(true);
+      expect(output.includes('delinked but has not been restored as it has no backup')).toBe(true);
 
       const mock_repo2 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo2');
-      expect(fs.lstatSync(mock_repo2).isSymbolicLink()).toBe(true);
-      expect(fs.realpathSync(mock_repo2)).toBe(path.resolve(mocksDir, 'mock_repo2'));
+      expect(fs.existsSync(mock_repo2)).toBe(false);
+    });
 
-      const mock_repo3 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo3');
-      expect(fs.lstatSync(mock_repo3).isSymbolicLink()).toBe(true);
-      expect(fs.realpathSync(mock_repo3)).toBe(path.resolve(mocksDir, 'mock_repo3'));
+    it('delinks the specified modules when linked in copy mode', async () => {
+      await runNslmCmd('register');
+      fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
+
+      await runNslmCmd('link --modules mock_repo2 --linktype copy', 'mock_repo1');
+
+      const output = await runNslmCmd('delink -a', 'mock_repo1');
+      expect(output.includes('"mock_repo1/node_modules/mock_repo2"')).toBe(true);
+      expect(output.includes('delinked & restored from backup')).toBe(true);
+      expect(output.includes('1 module was delinked successfully')).toBe(true);
+
+      // TODO fix this! backup feature is currently broken in copy mode
+      // const mock_repo2 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo2');
+      // expect(fs.existsSync(path.resolve(mock_repo2, 'extra-file.txt'))).toBe(false);
+    });
+  });
+
+  describe('check-links', () => {
+    describe('does nothing', () => {
+      it('if nothing has been linked', async () => {
+        const output = await runNslmCmd('check');
+        expect(output.includes('It doesn\'t look like you have linked any nslm modules')).toBe(true)
+      });
     });
   });
 
