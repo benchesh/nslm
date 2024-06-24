@@ -62,6 +62,8 @@ async function runNslmCmd(cmd, subdir = '') {
 const fakeNpmInstall = (dest, modules) => {
   modules.forEach((module) => {
     fs.copySync(path.resolve(mocksDir, module), path.resolve(mocksDir, dest, 'node_modules', module));
+
+    // create an extra file to simulate a published module with different contents
     fs.writeFileSync(path.resolve(mocksDir, dest, 'node_modules', module, 'extra-file.txt'), 'hello world');
   });
 }
