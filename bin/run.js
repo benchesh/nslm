@@ -69,6 +69,10 @@ if (!args[0].includes('..') && moduleExists(cmd)) {//if the cmd exists, run it!
         .alias('mode', 'linktype')
         .alias('type', 'linktype')
         .alias('allow-missing', 'allowmissing')
+        .alias('index', 'register')
+        .alias('deindex', 'deregister')
+        .alias('de-index', 'deregister')
+        .alias('de-register', 'deregister')
         .argv
 
     //change cwd to arg
