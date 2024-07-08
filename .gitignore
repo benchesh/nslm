@@ -2,3 +2,4 @@
 !.keep
 node_modules
 package-lock.json
+.nslm
