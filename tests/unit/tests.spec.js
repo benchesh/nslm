@@ -34,6 +34,31 @@ const deleteTempFiles = (dir) => {
   });
 };
 
+// const dirBuffer = (dir) => {
+//   const files = fs.readdirSync(dir);
+
+//   const arr = [];
+
+//   files.forEach((file) => {
+//     const filepath = path.join(dir, file);
+
+//     if (!fs.existsSync(filepath)) {
+//       return;
+//     }
+
+//     const stats = fs.statSync(filepath);
+
+//     if (stats.isDirectory()) {
+//       arr.concat(dirBuffer(filepath));
+//       return;
+//     }
+
+//     arr.push(fs.readFileSync(filepath));
+//   });
+
+//   return arr;
+// }
+
 async function runNslmCmd(cmd, subdir = '') {
   const logs = [];
 
@@ -88,7 +113,7 @@ describe('nslm', () => {
   });
 
   afterEach(() => {
-    // deleteTempFiles(path.dirname(mocksDir));
+    deleteTempFiles(path.dirname(mocksDir));
   });
 
   describe('register', () => {
@@ -312,7 +337,6 @@ describe('nslm', () => {
       fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
 
       const output = await runNslmCmd('link --modules mock_repo2 mock_repo3 --linktype copy --subdirs folder folder2', 'mock_repo1');
-
       expect(output.includes('4 subdirs were linked successfully')).toBe(true);
       expect(output.includes('All directories have been copied')).toBe(true);
       expect(output.includes('mocks/mock_repo2/folder"')).toBe(true);
@@ -431,21 +455,28 @@ describe('nslm', () => {
       expect(fs.existsSync(path.resolve(mock_repo2, 'folder', 'extra-file.txt'))).toBe(true);
     });
 
-    // it('delinks the specified subdirectories when linked in copy mode', async () => {
-    //   await runNslmCmd('register');
-    //   fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
+    it('delinks the specified subdirectories when linked in copy mode', async () => {
+      await runNslmCmd('register');
+      fakeNpmInstall('mock_repo1', ['mock_repo2', 'mock_repo3']);
 
-    //   await runNslmCmd('link --modules mock_repo2 --linktype copy --subdirs folder folder2', 'mock_repo1');
+      const mock_repo2 = path.resolve(mocksDir, 'mock_repo1', 'node_modules', 'mock_repo2');
 
-    //   // const output = await runNslmCmd('delink -a', 'mock_repo1');
-    //   // expect(output.includes('"mock_repo1/node_modules/mock_repo2/folder"')).toBe(true);
-    //   // expect(output.includes('delinked & restored from backup')).toBe(true);
-    //   // console.log(output)
-    //   // expect(output.includes('2 modules were delinked successfully')).toBe(true);
+      // extra file should be present in the npm installed module
+      expect(fs.existsSync(path.resolve(mock_repo2, 'folder', 'extra-file.txt'))).toBe(true);
 
-    //   // // extra file should be present in the npm installed module
-    //   // expect(fs.existsSync(path.resolve(mock_repo2, 'folder', 'extra-file.txt'))).toBe(true);
-    // });
+      await runNslmCmd('link --modules mock_repo2 --linktype copy --subdirs folder folder2', 'mock_repo1');
+
+      // extra file should NOT be present in the npm installed module
+      expect(fs.existsSync(path.resolve(mock_repo2, 'folder', 'extra-file.txt'))).toBe(false);
+
+      const output = await runNslmCmd('delink -a', 'mock_repo1');
+      expect(output.includes('"mock_repo1/node_modules/mock_repo2/folder"')).toBe(true);
+      expect(output.includes('delinked & restored from backup')).toBe(true);
+      expect(output.includes('2 modules were delinked successfully')).toBe(true);
+
+      // extra file should be present in the npm installed module
+      expect(fs.existsSync(path.resolve(mock_repo2, 'folder', 'extra-file.txt'))).toBe(true);
+    });
   });
 
   describe('check-links', () => {
